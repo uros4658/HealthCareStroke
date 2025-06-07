@@ -1,0 +1,151 @@
+---
+title: "Stroke Prediction Data Analysis"
+author: "Uros Babic"
+date: "2025-06-07"
+format: html
+toc: true
+toc-depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+```
+
+# Introduction
+
+Stroke is a leading cause of death and disability worldwide. Early identification of individuals at high risk of stroke can help in prevention and timely intervention. In this project, we analyze a healthcare dataset containing demographic and health-related information to explore factors associated with stroke occurrence. We use tidyverse tools in R to clean, transform, and visualize the data, aiming to uncover patterns and insights that could inform healthcare strategies.
+
+# Presentation and Description of the Problem
+
+The goal of this project is to analyze the factors that may contribute to the occurrence of stroke. We will use the "Stroke Prediction Dataset" from Kaggle, which contains various demographic and health-related features for each patient. Our aim is to identify which features are most associated with stroke and to visualize these relationships.
+
+# Presentation of the Data
+
+```{r}
+stroke <- read_csv("healthcare-dataset-stroke-data.csv")
+head(stroke)
+glimpse(stroke)
+```
+
+**Explanation of columns:**
+
+| Column             | Description                                                                 | Unit/Type         |
+|--------------------|-----------------------------------------------------------------------------|-------------------|
+| id                 | Unique identifier for each patient                                          | Integer           |
+| gender             | Gender of the patient                                                       | Categorical       |
+| age                | Age of the patient                                                          | Years (numeric)   |
+| hypertension       | Whether the patient has hypertension (1=yes, 0=no)                          | Binary            |
+| heart_disease      | Whether the patient has heart disease (1=yes, 0=no)                         | Binary            |
+| ever_married       | Whether the patient was ever married                                        | Categorical       |
+| work_type          | Type of work                                                                | Categorical       |
+| Residence_type     | Urban or Rural residence                                                    | Categorical       |
+| avg_glucose_level  | Average glucose level in blood                                              | mg/dL (numeric)   |
+| bmi                | Body Mass Index                                                             | Numeric           |
+| smoking_status     | Smoking status                                                              | Categorical       |
+| stroke             | Whether the patient had a stroke (1=yes, 0=no)                              | Binary            |
+
+# Transformation of Data
+
+```{r}
+# Clean BMI column and remove rows with missing BMI
+stroke_clean <- stroke %>%
+  mutate(bmi = as.numeric(bmi)) %>%
+  filter(!is.na(bmi))
+```
+
+## Table 1: Count of Strokes by Gender
+
+```{r}
+stroke_by_gender <- stroke_clean %>%
+  group_by(gender) %>%
+  summarise(
+    count = n(),
+    strokes = sum(stroke),
+    stroke_rate = mean(stroke)
+  )
+stroke_by_gender
+```
+*This table shows the number of patients, number of strokes, and stroke rate by gender.*
+
+## Table 2: Average BMI and Glucose by Stroke Status
+
+```{r}
+bmi_glucose_by_stroke <- stroke_clean %>%
+  group_by(stroke) %>%
+  summarise(
+    avg_bmi = mean(bmi, na.rm = TRUE),
+    avg_glucose = mean(avg_glucose_level, na.rm = TRUE)
+  )
+bmi_glucose_by_stroke
+```
+*This table compares average BMI and glucose levels between patients who had a stroke and those who did not.*
+
+## Table 3: Stroke Rate by Work Type
+
+```{r}
+stroke_by_work <- stroke_clean %>%
+  group_by(work_type) %>%
+  summarise(
+    count = n(),
+    strokes = sum(stroke),
+    stroke_rate = mean(stroke)
+  ) %>%
+  arrange(desc(stroke_rate))
+stroke_by_work
+```
+*This table shows which work types are associated with higher stroke rates.*
+
+# Exploratory Data Analysis
+
+## Plot 1: Age Distribution by Stroke Status
+
+```{r}
+ggplot(stroke_clean, aes(x = age, fill = factor(stroke))) +
+  geom_histogram(position = "identity", alpha = 0.6, bins = 30) +
+  labs(title = "Age Distribution by Stroke Status", x = "Age", fill = "Stroke") +
+  scale_fill_manual(values = c("skyblue", "tomato"), labels = c("No Stroke", "Stroke")) +
+  theme_minimal()
+```
+*This histogram shows the age distribution for patients with and without stroke. Strokes are more common in older age groups.*
+
+## Plot 2: Stroke Rate by Smoking Status
+
+```{r}
+stroke_clean %>%
+  group_by(smoking_status) %>%
+  summarise(stroke_rate = mean(stroke, na.rm = TRUE)) %>%
+  ggplot(aes(x = smoking_status, y = stroke_rate, fill = smoking_status)) +
+  geom_col() +
+  labs(title = "Stroke Rate by Smoking Status", y = "Stroke Rate", x = "Smoking Status") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+*This bar plot shows the proportion of patients who had a stroke for each smoking status group.*
+
+## Plot 3: BMI vs. Glucose Level by Stroke Status
+
+```{r}
+ggplot(stroke_clean, aes(x = bmi, y = avg_glucose_level, color = factor(stroke))) +
+  geom_point(alpha = 0.5) +
+  labs(title = "BMI vs. Glucose Level by Stroke Status", x = "BMI", y = "Avg Glucose Level", color = "Stroke") +
+  scale_color_manual(values = c("skyblue", "tomato"), labels = c("No Stroke", "Stroke")) +
+  theme_minimal()
+```
+*This scatter plot explores the relationship between BMI and glucose level, and whether stroke patients cluster in certain regions.*
+
+# Interpretation / Conclusion
+
+Our analysis of the stroke dataset reveals several important patterns:
+- Stroke incidence increases with age, as shown by the age distribution.
+- Certain work types and smoking statuses are associated with higher stroke rates.
+- Higher average BMI and glucose levels are observed among stroke patients.
+
+These findings align with known risk factors for stroke and highlight the importance of lifestyle and health monitoring in stroke prevention. Further analysis could include predictive modeling or deeper subgroup analysis.
+
+# References
+
+- Dataset: [Kaggle - Stroke Prediction Dataset](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
+- World Health Organization. (2023). Stroke, Cerebrovascular accident. [https://www.who.int/news-room/fact-sheets/detail/the-top-10-causes-of-death](https://www.who.int/news-room/fact-sheets/detail/the-top-10-causes-of-death)
+- R for Data Science, Hadley Wickham & Garrett Grolemund, O’Reilly, 2017.
